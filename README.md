@@ -1,2 +1,2 @@
 # badge
-simple authentication tokens
+highly performant authentication tokens
