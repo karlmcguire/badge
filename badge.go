@@ -45,6 +45,10 @@ func New(username []byte, id uint32, key []byte) ([]byte, error) {
 }
 
 func Get(badge []byte, key []byte) ([]byte, uint32, error) {
+	if len(badge) < 46 {
+		return nil, 0, ErrInvalidBadge
+	}
+
 	lb := make([]byte, 1)
 	hex.Decode(lb, badge[:2])
 
