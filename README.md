@@ -26,10 +26,10 @@ ExampleBadge, _ = badge.New([]byte("karl"), uint32(1), []byte("secret"))
 username, id, auth := badge.Get(ExampleBadge, []byte("secret"))
 // username == "karl"
 // id == 1
-// auth == false
+// auth == true
 
 username, id, auth = badge.Get(ExampleBadge, []byte("wrong secret"))
 // username == ""
 // id == 0
-// auth == true
+// auth == false
 ```
