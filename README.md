@@ -7,7 +7,7 @@ Badges are strictly for authentication, not carrying around data. For this reaso
 
 ## rules
 
-- Usernames must be <= 12 bytes (for now).
+- Usernames must be <= 255 bytes.
 - Ids must be uint32.
 
 ## examples
@@ -17,29 +17,19 @@ Badges are strictly for authentication, not carrying around data. For this reaso
 ```go
 var ExampleBadge []byte
 ExampleBadge, _ = badge.New([]byte("karl"), uint32(1), []byte("secret"))
-// string(ExampleBadge) == "dXNlcm5hbWU9PT09.AQAAAA==.HjL9WjyH6hIKHWaR_pwujS7eHU0P2tQRuSIGFnmUEzE="
-```
-
-### checking a badge
-
-```go
-ok := badge.Check(ExampleBadge, []byte("secret"))
-// ok == true
-
-ok = badge.Check(ExampleBadge, []byte("wrong secret"))
-// ok == false
+// string(ExampleBadge) == "karl01000000atWIIJV_-nEkoI8Ut7giG29svIzFU9Zp0VXgCtFrEBE="
 ```
 
 ### getting badge values
 
 ```go
-username, id, ok := badge.Get(ExampleBadge, []byte("secret"))
+username, id, err := badge.Get(ExampleBadge, []byte("secret"))
 // username == "karl"
 // id == 1
-// ok == true
+// err == nil
 
-username, id, ok = badge.Get(ExampleBadge, []byte("wrong secret"))
+username, id, err = badge.Get(ExampleBadge, []byte("wrong secret"))
 // username == ""
 // id == 0
-// ok == false
+// err == badge.ErrInvalidKey
 ```

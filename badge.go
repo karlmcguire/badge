@@ -5,122 +5,76 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 )
 
 var (
-	ErrInvalidUsername = errors.New("usernames must be <= 12 bytes")
+	ErrInvalidUsername = errors.New("usernames must be <= 255 bytes")
 	ErrInvalidBadge    = errors.New("invalid badge")
+	ErrInvalidKey      = errors.New("invalid key")
 )
 
 func New(username []byte, id uint32, key []byte) ([]byte, error) {
-	if len(username) > 12 {
+	if len(username) > 255 {
 		return nil, ErrInvalidUsername
 	}
 
-	raw_id := convert(id)
+	badge := make([]byte, (len(username))+53)
+	badge[0] = uint8(len(username))
 
-	username_padded := make([]byte, 12)
-
-	for i := 0; i < 12; i++ {
-		if i >= len(username) {
-			username_padded[i] = 0x3d
-			continue
-		}
-		username_padded[i] = username[i]
+	for i := 1; i <= len(username); i++ {
+		badge[i] = username[i-1]
 	}
 
-	token := make([]byte, 72)
-	token[17] = 0x2e
-	token[27] = 0x2e
+	idb := make([]byte, 4)
 
-	base64.URLEncoding.Encode(token[0:16], username_padded)
-	base64.URLEncoding.Encode(token[18:26], raw_id)
+	idb[3] = byte((id & 0xff000000) >> 24)
+	idb[2] = byte((id & 0x00ff0000) >> 16)
+	idb[1] = byte((id & 0x0000ff00) >> 8)
+	idb[0] = byte((id & 0x000000ff))
+
+	hex.Encode(badge[1+(len(username)):], idb)
 
 	h := hmac.New(sha256.New, key)
-	h.Write(token[0:27])
+	h.Write(badge[:1+len(username)+8])
 
-	base64.URLEncoding.Encode(token[28:], h.Sum(nil))
+	base64.URLEncoding.Encode(badge[1+len(username)+8:], h.Sum(nil))
 
-	return token, nil
+	return badge, nil
 }
 
-func Get(badge, key []byte) ([]byte, uint32, bool) {
-	if !Check(badge, key) {
-		return nil, 0, false
+func Get(badge []byte, key []byte) ([]byte, uint32, error) {
+	l := uint8(badge[0])
+	if l > 255 || len(badge) != (int(l)+53) {
+		return nil, 0, ErrInvalidBadge
 	}
 
-	ue := make([]byte, 16)
-	ie := make([]byte, 8)
-
-	for i := 0; i < 16; i++ {
-		ue[i] = badge[i]
+	username := make([]byte, l)
+	for a := 0; a < int(l); a++ {
+		username[a] = badge[a+1]
 	}
 
-	for i := 18; i < 26; i++ {
-		ie[i-18] = badge[i]
-	}
+	idb := make([]byte, 4)
+	hex.Decode(idb, badge[1+l:(1+l)+8])
 
-	up := make([]byte, 12)
-	id := make([]byte, 8)
-
-	base64.URLEncoding.Decode(up, ue)
-	base64.URLEncoding.Decode(id, ie)
-
-	ul := 0
-
-	for i := 0; i < 12; i++ {
-		if up[i] == 0x3d {
-			break
-		}
-		ul++
-	}
-
-	return up[:ul], deconvert(id), true
-}
-
-func Check(badge, key []byte) bool {
-	if len(badge) != 72 {
-		return false
-	}
-
-	v := make([]byte, 27)
-	s := make([]byte, 46)
-	vs := make([]byte, 46)
-
-	for i := 0; i < 26; i++ {
-		v[i] = badge[i]
-	}
-
-	for i := 28; i < 72; i++ {
-		s[i-28] = badge[i]
-	}
-
-	h := hmac.New(sha256.New, key)
-	h.Write(v)
-	base64.URLEncoding.Encode(vs, h.Sum(nil))
-
-	return bytes.Equal(s, vs)
-}
-
-func deconvert(id []byte) uint32 {
 	var i uint32
 
-	i |= uint32(id[3]) << 24
-	i |= uint32(id[2]) << 16
-	i |= uint32(id[1]) << 8
-	i |= uint32(id[0])
+	i |= uint32(idb[3]) << 24
+	i |= uint32(idb[2]) << 16
+	i |= uint32(idb[1]) << 8
+	i |= uint32(idb[0])
 
-	return i
-}
+	h := hmac.New(sha256.New, key)
+	h.Write(badge[:9+l])
 
-func convert(id uint32) []byte {
-	i := make([]byte, 4)
+	t := make([]byte, 44)
 
-	i[3] = byte((id & 0xff000000) >> 24)
-	i[2] = byte((id & 0x00ff0000) >> 16)
-	i[1] = byte((id & 0x0000ff00) >> 8)
-	i[0] = byte((id & 0x000000ff))
+	base64.URLEncoding.Encode(t, h.Sum(nil))
 
-	return i
+	if !bytes.Equal(t, badge[9+l:]) {
+		return nil, 0, ErrInvalidKey
+	}
+
+	return username, i, nil
 }
