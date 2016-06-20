@@ -20,11 +20,11 @@ func New(username []byte, id uint32, key []byte) ([]byte, error) {
 		return nil, ErrInvalidUsername
 	}
 
-	badge := make([]byte, (len(username))+53)
-	badge[0] = uint8(len(username))
+	badge := make([]byte, (len(username))+54)
+	hex.Encode(badge[:2], []byte{byte(uint8(len(username)))})
 
-	for i := 1; i <= len(username); i++ {
-		badge[i] = username[i-1]
+	for i := 2; i <= len(username)+1; i++ {
+		badge[i] = username[i-2]
 	}
 
 	idb := make([]byte, 4)
@@ -34,29 +34,32 @@ func New(username []byte, id uint32, key []byte) ([]byte, error) {
 	idb[1] = byte((id & 0x0000ff00) >> 8)
 	idb[0] = byte((id & 0x000000ff))
 
-	hex.Encode(badge[1+(len(username)):], idb)
+	hex.Encode(badge[2+(len(username)):], idb)
 
 	h := hmac.New(sha256.New, key)
-	h.Write(badge[:1+len(username)+8])
+	h.Write(badge[:10+len(username)])
 
-	base64.URLEncoding.Encode(badge[1+len(username)+8:], h.Sum(nil))
+	base64.URLEncoding.Encode(badge[10+len(username):], h.Sum(nil))
 
 	return badge, nil
 }
 
 func Get(badge []byte, key []byte) ([]byte, uint32, error) {
-	l := uint8(badge[0])
-	if l > 255 || len(badge) != (int(l)+53) {
+	lb := make([]byte, 1)
+	hex.Decode(lb, badge[:2])
+
+	l := uint8(lb[0])
+	if l > 255 || len(badge) != (int(l)+54) {
 		return nil, 0, ErrInvalidBadge
 	}
 
 	username := make([]byte, l)
 	for a := 0; a < int(l); a++ {
-		username[a] = badge[a+1]
+		username[a] = badge[a+2]
 	}
 
 	idb := make([]byte, 4)
-	hex.Decode(idb, badge[1+l:(1+l)+8])
+	hex.Decode(idb, badge[2+l:l+10])
 
 	var i uint32
 
@@ -66,13 +69,13 @@ func Get(badge []byte, key []byte) ([]byte, uint32, error) {
 	i |= uint32(idb[0])
 
 	h := hmac.New(sha256.New, key)
-	h.Write(badge[:9+l])
+	h.Write(badge[:10+l])
 
 	t := make([]byte, 44)
 
 	base64.URLEncoding.Encode(t, h.Sum(nil))
 
-	if !bytes.Equal(t, badge[9+l:]) {
+	if !bytes.Equal(t, badge[10+l:]) {
 		return nil, 0, ErrInvalidKey
 	}
 
