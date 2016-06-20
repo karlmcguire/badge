@@ -30,7 +30,7 @@ ok = badge.Check(ExampleBadge, []byte("wrong secret"))
 // ok == false
 ```
 
-### getting badges values
+### getting badge values
 
 ```go
 username, id, ok := badge.Get(ExampleBadge, []byte("secret"))
