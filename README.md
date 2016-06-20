@@ -17,7 +17,7 @@ Badges are strictly for authentication, not carrying around data. For this reaso
 ```go
 var ExampleBadge []byte
 ExampleBadge, _ = badge.New([]byte("karl"), uint32(1), []byte("secret"))
-// string(ExampleBadge) == dXNlcm5hbWU9PT09.AQAAAA==.HjL9WjyH6hIKHWaR_pwujS7eHU0P2tQRuSIGFnmUEzE=
+// string(ExampleBadge) == "dXNlcm5hbWU9PT09.AQAAAA==.HjL9WjyH6hIKHWaR_pwujS7eHU0P2tQRuSIGFnmUEzE="
 ```
 
 ### checking a badge
