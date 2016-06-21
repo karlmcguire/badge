@@ -11,8 +11,6 @@ import (
 
 var (
 	ErrInvalidUsername = errors.New("usernames must be <= 255 bytes")
-	ErrInvalidBadge    = errors.New("invalid badge")
-	ErrInvalidKey      = errors.New("invalid key")
 )
 
 func New(username []byte, id uint32, key []byte) ([]byte, error) {
@@ -44,9 +42,9 @@ func New(username []byte, id uint32, key []byte) ([]byte, error) {
 	return badge, nil
 }
 
-func Get(badge []byte, key []byte) ([]byte, uint32, error) {
+func Get(badge []byte, key []byte) ([]byte, uint32, bool) {
 	if len(badge) < 46 {
-		return nil, 0, ErrInvalidBadge
+		return nil, 0, false
 	}
 
 	lb := make([]byte, 1)
@@ -54,7 +52,7 @@ func Get(badge []byte, key []byte) ([]byte, uint32, error) {
 
 	l := uint8(lb[0])
 	if l > 255 || len(badge) != (int(l)+54) {
-		return nil, 0, ErrInvalidBadge
+		return nil, 0, false
 	}
 
 	username := make([]byte, l)
@@ -80,8 +78,8 @@ func Get(badge []byte, key []byte) ([]byte, uint32, error) {
 	base64.URLEncoding.Encode(t, h.Sum(nil))
 
 	if !bytes.Equal(t, badge[10+l:]) {
-		return nil, 0, ErrInvalidKey
+		return nil, 0, false
 	}
 
-	return username, i, nil
+	return username, i, true
 }

@@ -23,13 +23,13 @@ ExampleBadge, _ = badge.New([]byte("karl"), uint32(1), []byte("secret"))
 ### getting badge values
 
 ```go
-username, id, err := badge.Get(ExampleBadge, []byte("secret"))
+username, id, auth := badge.Get(ExampleBadge, []byte("secret"))
 // username == "karl"
 // id == 1
-// err == nil
+// auth == false
 
-username, id, err = badge.Get(ExampleBadge, []byte("wrong secret"))
+username, id, auth = badge.Get(ExampleBadge, []byte("wrong secret"))
 // username == ""
 // id == 0
-// err == badge.ErrInvalidKey
+// auth == true
 ```
