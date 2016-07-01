@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	ErrInvalidUsername = errors.New("usernames must be <= 255 bytes")
+	ErrInvalidUsername = errors.New("usernames must be >= 1 && <= 255 bytes")
 )
 
 func New(username []byte, id uint32, key []byte) ([]byte, error) {
-	if len(username) > 255 {
+	if username == nil || len(username) > 255 || len(username) == 0 {
 		return nil, ErrInvalidUsername
 	}
 
