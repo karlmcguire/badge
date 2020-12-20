@@ -9,35 +9,34 @@ func TestNew(t *testing.T) {
 	type user struct {
 		username []byte
 		id       uint32
-		err      error
+		good     bool
 	}
 
 	newTests := []user{
 		user{
 			[]byte("joe"),
 			uint32(0),
-			nil,
+			true,
 		},
 		user{
 			[]byte("....................................................................................................................................................................................................................................................................................................."),
 			uint32(0),
-			ErrInvalidUsername,
+			false,
 		},
 		user{
 			[]byte(""),
 			uint32(0),
-			ErrInvalidUsername,
+			false,
 		},
 		user{
 			nil,
 			uint32(0),
-			ErrInvalidUsername,
+			false,
 		},
 	}
 
 	for _, v := range newTests {
-		_, err := New(v.username, v.id, []byte("key"))
-		if err != v.err {
+		if b := New(v.username, v.id, []byte("key")); b == nil && v.good {
 			t.Fatal("unexpected error")
 		}
 	}
@@ -72,10 +71,7 @@ func TestGet(t *testing.T) {
 	scratchBadge := make([]byte, 0)
 
 	for _, v := range getTests {
-		b, err := New(v.username, v.id, v.key)
-		if err != nil {
-			t.Fatal(err)
-		}
+		b := New(v.username, v.id, v.key)
 
 		username, id, auth := Get(b, goodKey)
 		if v.auth != auth {

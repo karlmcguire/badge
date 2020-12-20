@@ -6,16 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 )
 
-var (
-	ErrInvalidUsername = errors.New("usernames must be >= 1 && <= 255 bytes")
-)
-
-func New(username []byte, id uint32, key []byte) ([]byte, error) {
+func New(username []byte, id uint32, key []byte) []byte {
 	if username == nil || len(username) > 255 || len(username) == 0 {
-		return nil, ErrInvalidUsername
+		return nil
 	}
 
 	badge := make([]byte, (len(username))+54)
@@ -39,7 +34,7 @@ func New(username []byte, id uint32, key []byte) ([]byte, error) {
 
 	base64.URLEncoding.Encode(badge[10+len(username):], h.Sum(nil))
 
-	return badge, nil
+	return badge
 }
 
 func Get(badge []byte, key []byte) ([]byte, uint32, bool) {
